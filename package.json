@@ -1,0 +1,11 @@
+{
+	"name": "DadBot",
+	"verison": "1.0.0",
+	"description": "Dad joke bot",
+	"main": "dadBot.js",
+	"author": "David van de Veerdonk",
+	"dependencies": {
+		"discord.io": "github:woor/discord.io#gateway_v6",
+		"winston": "^3.2.1"
+	}
+}
