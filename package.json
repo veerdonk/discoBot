@@ -5,8 +5,9 @@
 	"main": "dadBot.js",
 	"author": "David van de Veerdonk",
 	"dependencies": {
-		"discord.io": "github:woor/discord.io#gateway_v6",
+		"bufferutil": "^4.0.1",
 		"discord.js": "^11.5.1",
+		"node-gyp": "^6.1.0",
 		"winston": "^3.2.1"
 	}
 }

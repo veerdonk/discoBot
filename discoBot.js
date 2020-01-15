@@ -1,7 +1,20 @@
-const Discord = require('discord.io');
-const log = require('winston');
 const auth = require('./auth.json');
+const fs = require('fs');
+const Discord = require('discord.js');
+const log = require('winston');
 
+//client initialization
+const client = new Discord.Client();
+client.commands = new Discord.Collection();
+
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+const prefix = '!';
+let dadMode = false;
+
+for (const file of commandFiles) {
+	const commandName = require(`./commands/${file}`);
+	client.commands.set(commandName.name, commandName);
+}
 
 //Logging stuff
 log.remove(log.transports.Console);
@@ -10,58 +23,37 @@ log.add(new log.transports.Console, {
 });
 log.level = 'info';
 
-//Bot initialization
-const bot = new Discord.Client({
-    token: auth.token,
-    autorun: true
-});
-
-//When bot is ready log this
-bot.on('ready', function(evt){
-    var offTopic = bot.channels.get("664085438562304002");
-    console.log(offTopic);
-    log.info('Connected');
-    log.info('Logged in as: ');
-    log.info(bot.username + ' - (' + bot.id + ')');
+//When client is ready log this
+client.on('ready', function(evt){
+    log.info(`Logged in as ${client.user.tag}!`);
 })
 
-const ikBenRe = /ik ben (.*)/;
+client.on('message', message => {
+    if(message.content.startsWith(prefix)){
 
 
-bot.on('message', function(user, userID, channelID, message, evt){
-    console.log(message);
-    if(message.startsWith('!')){
-        let command = message.substring(1);
-        log.info('command triggered ' + command);
-        switch (command) {
-            case 'lokroep':
-                console.log(message.member);
-                const andereChannel = message.member.channels.find("name", "Die andere");
-                user.setVoiceChannel(andereChannel)
-                .then(() => console.log(`Moved ${member.displayName}`))
-                .catch(console.error);
-                break;
-            default:
-                bot.sendMessage({
-                    to: channelID,
-                    message: 'Command not recognized'
-                })
-                break;
-        } 
-    }else{
 
-        let results = ikBenRe.exec(message);
-    
-        if(results){
-            if(results[1] != 'DadBot!'){
-                let name = results[1];
-                let msg = 'Hallo ' + results[1] + ', ik ben DiscoBot!';
-                bot.sendMessage({
-                    to: channelID,
-                    message: msg
-                });
-            }
+
+        const args = message.content.slice(prefix.length).split(/ +/);
+	    const commandName = args.shift().toLowerCase();
+
+        //commandName not implemented
+        if (!client.commands.has(commandName)) return;
+        
+        let command = client.commands.get(commandName);
+        
+        try {
+            
+            command.execute(client, message, args)
+        } catch (error) {
+            console.error(error);
+            message.reply('there was an error trying to execute that commandName!');
         }
-    }
-});
 
+    }
+    else if(dadMode === true){
+        //check for dadjoke
+    }
+})
+
+client.login(auth.token);
