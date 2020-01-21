@@ -2,6 +2,9 @@ const auth = require('./auth.json');
 const fs = require('fs');
 const Discord = require('discord.js');
 const log = require('winston');
+const wit = require('./lib/voiceControl');
+
+// wit.execute("doe de lokroep");
 
 //client initialization
 const client = new Discord.Client();
@@ -10,10 +13,12 @@ client.commands = new Discord.Collection();
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 const prefix = '!';
 let dadMode = false;
+let listening = true;
 
 for (const file of commandFiles) {
 	const commandName = require(`./commands/${file}`);
-	client.commands.set(commandName.name, commandName);
+    client.commands.set(commandName.name, commandName);
+    log.info("command added: " + commandName.name);
 }
 
 //Logging stuff
@@ -31,11 +36,10 @@ client.on('ready', function(evt){
 client.on('message', message => {
     if(message.content.startsWith(prefix)){
 
-
-
-
         const args = message.content.slice(prefix.length).split(/ +/);
 	    const commandName = args.shift().toLowerCase();
+
+        log.info(commandName);
 
         //commandName not implemented
         if (!client.commands.has(commandName)) return;
@@ -43,7 +47,6 @@ client.on('message', message => {
         let command = client.commands.get(commandName);
         
         try {
-            
             command.execute(client, message, args)
         } catch (error) {
             console.error(error);
@@ -55,5 +58,7 @@ client.on('message', message => {
         //check for dadjoke
     }
 })
+
+
 
 client.login(auth.token);
