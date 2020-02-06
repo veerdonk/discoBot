@@ -4,7 +4,11 @@ const Discord = require('discord.js');
 const log = require('winston');
 const wit = require('./lib/voiceControl');
 
-// wit.execute("doe de lokroep");
+//voice
+const datapath = 'voiceData';
+const rate = 48000;
+const frame_size = 1920;
+const channels = 2;
 
 //client initialization
 const client = new Discord.Client();
@@ -14,6 +18,13 @@ const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('
 const prefix = '!';
 let dadMode = false;
 let listening = true;
+
+//Maps to hold voice recording stuff
+let voiceConnections = new Map();
+let voiceReceivers = new Map();
+let writeStreams = new Map();
+let speakTime = new Map();
+let timestart = new Date().getTime();
 
 for (const file of commandFiles) {
 	const commandName = require(`./commands/${file}`);
@@ -28,10 +39,38 @@ log.add(new log.transports.Console, {
 });
 log.level = 'info';
 
+//Silence stuff for voiceConnection
+const { Readable } = require('stream');
+const SILENCE_FRAME = Buffer.from([0xF8, 0xFF, 0xFE]);
+class Silence extends Readable {
+  _read() {
+    this.push(SILENCE_FRAME);
+    this.destroy();
+  }
+}
+
 //When client is ready log this
 client.on('ready', function(evt){
     log.info(`Logged in as ${client.user.tag}!`);
 })
+
+client.on('guildMemberSpeaking', (member, speaking) => {
+    
+    
+    if(!speakTime.get(member)){
+        speakTime.set(member, 0);
+    }
+    if(speaking){
+        console.log(`user: ${member.displayName} is currently speaking`);
+        timestart = new Date().getTime();
+    }
+    if(!speaking){
+        let timestop = new Date().getTime();
+        speakTime.set(member, speakTime.get(member) + (timestop - timestart));
+    }
+
+});
+
 
 client.on('message', message => {
     if(message.content.startsWith(prefix)){
@@ -47,7 +86,11 @@ client.on('message', message => {
         let command = client.commands.get(commandName);
         
         try {
-            command.execute(client, message, args)
+            if(commandName == "whos_chatty"){
+                command.execute(client, message, args, speakTime);
+            }else{
+                command.execute(client, message, args)
+            }
         } catch (error) {
             console.error(error);
             message.reply('there was an error trying to execute that commandName!');
@@ -59,39 +102,28 @@ client.on('message', message => {
     }
 
     else if(listening === true){
-        const voiceChannel = client.channels.get("644587330673311788");
+        
+        const voiceChannel = message.member.voiceChannel;//client.channels.get("644587330673311788");
         log.info('listening = true');
+    
         voiceChannel.join()
-        .then(conn => {
-            log.info('ready!');
-            // create our voice receiver
-            const receiver = conn.createReceiver();
+        .then(connection => {
+            console.log("connection aquired");
+            
+            voiceConnections.set()
+    
+    
+            connection.on('speaking', (user, speaking) => {
+                log.info(`user: ${user} is currently speaking`)
+            });
+        })
+        .catch(err => {
+            log.error(err);
+        });
 
-            conn.on('speaking', (user, speaking) => {
-                log.info("speaking conn up...");
-                    if (speaking) {
-                        log.info(`I'm listening to ${user}`);
-                        //This is where the audiostream will be created/written to file
-
-                        // this creates a 16-bit signed PCM, stereo 48KHz PCM stream.
-                        const audioStream = receiver.createPCMStream(user);
-                        // create an output stream so we can dump our data in a file
-                        const outputStream = generateOutputFile(voiceChannel, user);
-                        // pipe our audio data into the file stream
-                        audioStream.pipe(outputStream);
-                        outputStream.on("data", console.log);
-                        // when the stream ends (the user stopped talking) tell the user
-                        audioStream.on('end', () => {
-                        log.info(`I'm no longer listening to ${user}`);
-                        });
-                        
-                    }
-                });
-            })
-        .catch(console.log);
     }
 
-})
+});
 
 
 
