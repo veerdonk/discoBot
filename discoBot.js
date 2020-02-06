@@ -63,6 +63,11 @@ client.on('guildMemberSpeaking', (member, speaking) => {
     if(speaking){
         console.log(`user: ${member.displayName} is currently speaking`);
         timestart = new Date().getTime();
+
+        //TODO create voice clips
+        // Write to file or maybe use stream
+        // feed file/stream to Wit
+        //Use Wit to determine command.
     }
     if(!speaking){
         let timestop = new Date().getTime();

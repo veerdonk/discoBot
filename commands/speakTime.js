@@ -5,7 +5,9 @@ module.exports = {
         let msg = "";
 
         for(let member of speakTime.keys()){
-            msg += `${member.displayName} has spoken for a total of ${speakTime.get(member)/1000} seconds\n`
+            let seconds = speakTime.get(member)/1000;
+
+            msg += `${member.displayName} has spoken for a total of ${Math.round(seconds/60)} minutes and ${Math.round(seconds%60)} seconds\n`
         }
 
 		message.channel.send(msg);
