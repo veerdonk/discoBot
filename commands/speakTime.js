@@ -4,10 +4,10 @@ module.exports = {
 	execute(client, message, args, speakTime) {
         let msg = "";
 
-        for(let member of speakTime.keys()){
+        for(let member in speakTime){
             let timestr = "";
-            let minutes = Math.round((speakTime.get(member)/1000)/60);
-            let seconds = Math.round((speakTime.get(member)/1000)%60);
+            let minutes = Math.round((speakTime[member]/1000)/60);
+            let seconds = Math.round((speakTime[member]/1000)%60);
 
             //Format the message correctly
             if(minutes > 0){
@@ -24,9 +24,7 @@ module.exports = {
                     timestr += "s";
                 }
             }
-
-
-            msg += `${member.displayName} has spoken for a total of ${timestr}\n`
+            msg += `${member} has spoken for a total of ${timestr}\n`
         }
 
 		message.channel.send(msg);

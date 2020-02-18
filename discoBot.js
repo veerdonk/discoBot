@@ -23,7 +23,7 @@ let listening = true;
 let voiceConnections = new Map();
 let voiceReceivers = new Map();
 let writeStreams = new Map();
-let speakTime = new Map();
+let speakTime = require('./data/voiceData/chatty.json');
 let timestart = new Date().getTime();
 
 for (const file of commandFiles) {
@@ -57,8 +57,8 @@ client.on('ready', function(evt){
 client.on('guildMemberSpeaking', (member, speaking) => {
     
     
-    if(!speakTime.get(member)){
-        speakTime.set(member, 0);
+    if(!speakTime[member.displayName]){
+        speakTime[member.displayName] = 0;
     }
     if(speaking){
         console.log(`user: ${member.displayName} is currently speaking`);
@@ -71,7 +71,9 @@ client.on('guildMemberSpeaking', (member, speaking) => {
     }
     if(!speaking){
         let timestop = new Date().getTime();
-        speakTime.set(member, speakTime.get(member) + (timestop - timestart));
+        speakTime[member.displayName] = speakTime[member.displayName] + (timestop - timestart);
+        
+        fs.writeFileSync('./data/voiceData/chatty.json', JSON.stringify(speakTime), 'utf-8');
     }
 
 });
