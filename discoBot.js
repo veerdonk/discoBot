@@ -26,6 +26,12 @@ let writeStreams = new Map();
 let speakTime = require('./data/voiceData/chatty.json');
 let timestart = new Date().getTime();
 
+//More voice stuff
+let dispatcher;
+let receiver;
+let connection;
+
+//Get all commands
 for (const file of commandFiles) {
 	const commandName = require(`./commands/${file}`);
     client.commands.set(commandName.name, commandName);
@@ -49,14 +55,23 @@ class Silence extends Readable {
   }
 }
 
-//When client is ready log this
-client.on('ready', function(evt){
-    log.info(`Logged in as ${client.user.tag}!`);
-})
+// make a new stream for each time someone starts to talk
+function generateOutputFile(channel, member) {
+    const fileName = `./data/recordings/${channel.name}-${member.displayName}-${Date.now()}.pcm`;
+    console.log(fileName);
+    return fs.createWriteStream(fileName);
+}
 
+// Works (kinda)
 client.on('guildMemberSpeaking', (member, speaking) => {
     
-    
+    if(!voiceConnections.get(member)){
+        voiceConnections.set(member, member.voiceChannel.connection);
+    }
+    if(!voiceReceivers.get(member)){
+        voiceReceivers.set(member,  voiceConnections.get(member).createReceiver());
+    }
+
     if(!speakTime[member.displayName]){
         speakTime[member.displayName] = 0;
     }
@@ -64,6 +79,18 @@ client.on('guildMemberSpeaking', (member, speaking) => {
         console.log(`user: ${member.displayName} is currently speaking`);
         timestart = new Date().getTime();
 
+        const audioStream = voiceReceivers.get(member).createPCMStream(member.user);
+        const outputStream = generateOutputFile(member.voiceChannel, member);
+        audioStream.on('data', (chunk) => {
+            console.log(`Received ${chunk.length} bytes of data.`);
+        });
+        audioStream.pipe(outputStream);
+
+        outputStream.on("data", console.log)
+
+        audioStream.on('end', () => {
+            console.log("audioStream ended");
+        })
         //TODO create voice clips
         // Write to file or maybe use stream
         // feed file/stream to Wit
@@ -72,13 +99,49 @@ client.on('guildMemberSpeaking', (member, speaking) => {
     if(!speaking){
         let timestop = new Date().getTime();
         speakTime[member.displayName] = speakTime[member.displayName] + (timestop - timestart);
-        
+
+        //A bit inefficient to write each time someone stops speaking
         fs.writeFileSync('./data/voiceData/chatty.json', JSON.stringify(speakTime), 'utf-8');
     }
 
 });
 
+// client.on('presenceUpdate', async (oldPresence, newPresence) =>{
 
+    
+
+// })
+
+function handleVoiceConnection(conn){
+    console.log(`Start listening to: ${conn}!`);
+
+    console.log(`Playing a sound in ${conn.channel.name}`);
+    dispatcher = conn.playFile('./data/sounds/join.mp3', { passes: 5 });
+    dispatcher.on('start', () => {
+        console.log('Playing join.mp3')
+    })
+    dispatcher.on('finish', () => {
+        console.log('Finished playing sound')
+    })
+    dispatcher.on('end', () => {
+        console.log('dispatcher ended')
+    })
+    conn.on('error', (error) => {
+        console.log("conn Error!", error);
+    });
+    conn.on('failed', (error) => {
+        console.log("conn Fail!", error);
+    });
+
+    //speaking
+    conn.on('speaking', (user, speaking) => {
+        console.log('user: ', user.displayName);
+        console.log('Scribe: speaking: ', speaking);
+    })
+
+}
+
+//If user sends a message do something
 client.on('message', message => {
     if(message.content.startsWith(prefix)){
 
@@ -107,33 +170,36 @@ client.on('message', message => {
     else if(dadMode === true){
         //check for dadjoke
     }
-
-    else if(listening === true){
+    else if(message.content == 'listen'){
         
-        const voiceChannel = message.member.voiceChannel;//client.channels.get("644587330673311788");
-        log.info('listening = true');
-    
-        voiceChannel.join()
-        .then(connection => {
-            console.log("connection aquired");
-            
-            voiceConnections.set()
-    
-    
-            connection.on('speaking', (user, speaking) => {
-                log.info(`user: ${user} is currently speaking`)
-            });
-        })
-        .catch(err => {
-            log.error(err);
-        });
-
     }
-
 });
 
 
-
-
-
 client.login(auth.token);
+
+//When client is ready log this
+client.on('ready', () =>{
+    
+    log.info(`Logged in as ${client.user.tag}!`);
+
+    // const member = newPresence.member
+    
+    const voiceID = '644587330673311788';
+    const memberVoiceChannel = client.channels.get(voiceID);
+    console.log("joining..")
+    memberVoiceChannel.join()
+
+    // memberVoiceChannel.join()
+    // connection = client.voiceConnections;
+    // receiver = connection.createReceiver();
+
+    console.log('joined')
+    // .then(conn => {
+    //     console.log(conn);
+    //     connection = conn;
+    // });
+    // console.log(connection)
+    // handleVoiceConnection(client.voiceConnections.get('644587330673311784'));
+
+})
