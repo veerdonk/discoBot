@@ -5,7 +5,7 @@
 	"main": "dadBot.js",
 	"author": "David van de Veerdonk",
 	"dependencies": {
-		"@discordjs/opus": "^0.1.0",
+		"@discordjs/opus": "^0.8.0",
 		"bufferutil": "^4.0.1",
 		"discord.js": "^11.5.1",
 		"ffmpeg": "0.0.4",
